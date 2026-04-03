@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -581,10 +582,10 @@ const CONFIG = {
   LNG: 121.1445,
   MAX_DIST: 500,          // 允許打卡範圍（公尺）
 
-  // 公司 WiFi（請填入實際 SSID）
-  WIFI_SSID: 'APOTECH-WiFi',
+  // 公司 WiFi SSID
+  WIFI_SSID: 'APOTECH',
 
-  // 公司 IP 前綴（請填入實際 IP 段）
+  // 公司固定 IP 前綴（114.34.45.40）
   ALLOWED_IP_PREFIX: '114.34.45',
 
   // Notion API（請填入你的 Integration Token 和 Database ID）
@@ -593,7 +594,7 @@ const CONFIG = {
 
   // Notion Proxy（GitHub Pages 無法直接呼叫 Notion API，需要 CORS Proxy）
   // 部署後請填入你的後端 Proxy URL，或使用 Cloudflare Workers
-  NOTION_PROXY: 'https://morning-cake-17beapotech-systemcheck-in.kuan-d6c.workers.dev',
+  NOTION_PROXY: 'https://YOUR_PROXY_URL/api/checkin',
 };
 // ══════════════════════════════════════
 
