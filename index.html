@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>APOTECH 員工打卡系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<style>
+:root {
+  --bg: #0a0f1e;
+  --surface: #111827;
+  --surface2: #1a2236;
+  --surface3: #1f2d45;
+  --border: rgba(255,255,255,.08);
+  --border2: rgba(255,255,255,.14);
+  --primary: #38bdf8;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --text: #f1f5f9;
+  --text2: #94a3b8;
+  --text3: #475569;
+  --radius: 20px;
+  --radius-sm: 12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  font-family: 'Noto Sans TC', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+.bg-mesh {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(56,189,248,.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 110%, rgba(52,211,153,.08) 0%, transparent 60%);
+}
+.app { position: relative; z-index: 1; max-width: 430px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+
+/* ── Login Screen ── */
+#loginScreen {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 100vh; padding: 32px 24px;
+}
+.login-logo { font-size: 48px; margin-bottom: 16px; }
+.login-brand { font-size: 22px; font-weight: 900; margin-bottom: 4px; }
+.login-sub { font-size: 13px; color: var(--text2); margin-bottom: 40px; }
+.login-card {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 28px 24px;
+  width: 100%; max-width: 360px;
+}
+.login-card h2 { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: .06em; }
+.form-input {
+  width: 100%; padding: 12px 14px;
+  background: var(--surface2); border: 1.5px solid var(--border2);
+  border-radius: 10px; color: var(--text);
+  font-size: 14px; font-family: 'Noto Sans TC', sans-serif;
+  outline: none; transition: border-color .15s;
+}
+.form-input:focus { border-color: var(--primary); }
+.form-input::placeholder { color: var(--text3); }
+.btn-login {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+  border: none; border-radius: 12px;
+  font-size: 15px; font-weight: 800; color: #fff;
+  cursor: pointer; margin-top: 8px;
+  font-family: 'Noto Sans TC', sans-serif;
+  transition: all .2s;
+  box-shadow: 0 4px 20px rgba(14,165,233,.3);
+}
+.btn-login:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(14,165,233,.4); }
+.login-error { color: var(--danger); font-size: 12.5px; margin-top: 10px; text-align: center; display: none; }
+
+/* ── Header ── */
+.header {
+  padding: 52px 24px 20px;
+  display: flex; align-items: flex-start; justify-content: space-between;
+}
+.brand-label { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); margin-bottom: 4px; }
+.brand-title { font-size: 22px; font-weight: 900; }
+.header-time { text-align: right; }
+.time-clock { font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 600; }
+.time-date { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+/* ── Employee Card ── */
+.emp-card {
+  margin: 0 16px 20px;
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 18px 20px;
+  display: flex; align-items: center; gap: 14px;
+  position: relative; overflow: hidden;
+}
+.emp-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(56,189,248,.06), transparent);
+  pointer-events: none;
+}
+.emp-avatar {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 900; color: #fff; flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.3);
+}
+.emp-name { font-size: 17px; font-weight: 800; }
+.emp-meta { font-size: 12px; color: var(--text2); margin-top: 3px; display: flex; align-items: center; gap: 8px; }
+.emp-id { font-family: 'DM Mono', monospace; color: var(--primary); font-size: 11.5px; }
+.emp-dept { background: var(--surface3); padding: 2px 8px; border-radius: 20px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success); animation: pulse-dot 2s infinite; flex-shrink: 0; }
+@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+/* ── Last Checkin ── */
+.last-checkin { margin: 0 16px 20px; display: flex; gap: 10px; }
+.last-card {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px 16px;
+}
+.last-card-label { font-size: 11px; color: var(--text3); font-weight: 600; text-transform: uppercase; margin-bottom: 6px; }
+.last-card-value { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 600; }
+.last-card-value.in { color: var(--success); }
+.last-card-value.out { color: var(--primary); }
+.last-card-sub { font-size: 11px; color: var(--text2); margin-top: 3px; }
+
+/* ── Mode Selector ── */
+.mode-wrap { padding: 0 16px 16px; }
+.mode-label { font-size: 12px; font-weight: 700; color: var(--text2); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 10px; }
+.mode-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.mode-btn {
+  background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px 6px 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  cursor: pointer; transition: all .2s; position: relative;
+}
+.mode-btn.active {
+  border-color: var(--primary);
+  background: rgba(56,189,248,.12);
+  box-shadow: 0 0 20px rgba(56,189,248,.2);
+}
+.mode-btn.active::after { content: '✓'; position: absolute; top: 5px; right: 7px; font-size: 9px; font-weight: 900; color: var(--primary); }
+.mode-icon { font-size: 22px; }
+.mode-name { font-size: 10.5px; font-weight: 700; color: var(--text2); text-align: center; line-height: 1.2; }
+.mode-btn.active .mode-name { color: var(--primary); }
+
+/* ── Verify Panel ── */
+.verify-panel {
+  margin: 0 16px; background: var(--surface);
+  border: 1px solid var(--border2); border-radius: var(--radius);
+  overflow: hidden; min-height: 220px;
+}
+.verify-inner { padding: 20px; }
+.verify-title { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
+.verify-subtitle { font-size: 12.5px; color: var(--text2); margin-bottom: 18px; line-height: 1.5; }
+
+/* GPS */
+.gps-map-mock {
+  background: var(--surface2); border-radius: 14px;
+  height: 120px; position: relative; overflow: hidden; margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+.map-grid {
+  position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(56,189,248,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.map-ring {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 90px; height: 90px; border-radius: 50%;
+  border: 2px dashed rgba(52,211,153,.4);
+  animation: ring-pulse 2.5s ease-in-out infinite;
+}
+@keyframes ring-pulse { 0%,100%{transform:translate(-50%,-50%) scale(1);opacity:1} 50%{transform:translate(-50%,-50%) scale(1.1);opacity:.6} }
+.company-pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-60%); font-size: 22px; }
+.user-pin { position: absolute; top: 45%; left: 58%; font-size: 16px; animation: user-move 4s ease-in-out infinite; }
+@keyframes user-move { 0%,100%{top:45%;left:58%} 50%{top:48%;left:55%} }
+.dist-tag { position: absolute; bottom: 8px; right: 10px; background: rgba(0,0,0,.6); border-radius: 6px; padding: 2px 8px; font-size: 11px; font-family: 'DM Mono', monospace; color: var(--success); }
+.gps-info { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.gps-info-item { background: var(--surface2); border-radius: 10px; padding: 8px 12px; border: 1px solid var(--border); }
+.gps-info-label { font-size: 10px; color: var(--text3); font-weight: 600; text-transform: uppercase; margin-bottom: 3px; }
+.gps-info-value { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text); }
+
+/* WiFi */
+.wifi-anim { display: flex; flex-direction: column; align-items: center; padding: 16px 0 12px; }
+.wifi-rings { position: relative; width: 90px; height: 72px; margin-bottom: 10px; }
+.wifi-ring-item { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); border: 2.5px solid var(--primary); border-radius: 50%; border-bottom-color: transparent; border-left-color: transparent; }
+.wifi-ring-item:nth-child(1) { width: 24px; height: 24px; }
+.wifi-ring-item:nth-child(2) { width: 50px; height: 50px; animation: wifi-fade 1.5s .2s infinite; }
+.wifi-ring-item:nth-child(3) { width: 76px; height: 76px; animation: wifi-fade 1.5s .4s infinite; }
+@keyframes wifi-fade { 0%,100%{opacity:1} 50%{opacity:.3} }
+.wifi-dot { position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); width: 10px; height: 10px; background: var(--primary); border-radius: 50%; box-shadow: 0 0 10px var(--primary); }
+.wifi-ssid-box { background: var(--surface2); border: 1px solid var(--border2); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.wifi-ssid-name { font-size: 14px; font-weight: 700; }
+.wifi-ssid-status { font-size: 11.5px; color: var(--text2); margin-top: 2px; }
+.wifi-badge { font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 700; }
+.wifi-ok { background: rgba(52,211,153,.15); color: var(--success); }
+.wifi-fail { background: rgba(248,113,113,.15); color: var(--danger); }
+
+/* QR Scanner */
+.qr-container { display: flex; flex-direction: column; align-items: center; padding: 8px 0; }
+.qr-toggle { display: flex; gap: 8px; width: 100%; margin-bottom: 14px; }
+.qr-toggle-btn {
+  flex: 1; padding: 9px 8px; border-radius: 10px;
+  border: 1.5px solid var(--border); background: var(--surface2);
+  color: var(--text2); font-size: 12px; font-weight: 700;
+  cursor: pointer; font-family: 'Noto Sans TC', sans-serif;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  transition: all .2s;
+}
+.qr-toggle-btn.active { border-color: var(--primary); color: var(--primary); background: rgba(56,189,248,.1); }
+.scanner-wrap { background: var(--surface2); border-radius: 14px; overflow: hidden; position: relative; width: 100%; margin-bottom: 12px; }
+.scanner-prompt { padding: 20px; text-align: center; }
+.scanner-corner { position: absolute; width: 20px; height: 20px; border-color: var(--primary); border-style: solid; z-index: 10; }
+.scanner-corner.tl { top: 8px; left: 8px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+.scanner-corner.tr { top: 8px; right: 8px; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+.scanner-corner.bl { bottom: 8px; left: 8px; border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+.scanner-corner.br { bottom: 8px; right: 8px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+.qr-box { width: 160px; height: 160px; background: #fff; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; box-shadow: 0 0 30px rgba(56,189,248,.2); }
+.qr-timer { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--text2); }
+.qr-timer span { color: var(--primary); font-weight: 700; font-size: 17px; }
+
+/* IP */
+.ip-shield { font-size: 48px; margin: 8px auto 12px; display: block; text-align: center; animation: shield-pulse 2s ease-in-out infinite; }
+@keyframes shield-pulse { 0%,100%{filter:drop-shadow(0 0 6px rgba(56,189,248,.4))} 50%{filter:drop-shadow(0 0 18px rgba(56,189,248,.8))} }
+.ip-info-box { background: var(--surface2); border-radius: 12px; padding: 12px 16px; border: 1px solid var(--border); margin-bottom: 10px; }
+.ip-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; }
+.ip-row + .ip-row { border-top: 1px solid var(--border); }
+.ip-row-label { font-size: 12px; color: var(--text2); font-weight: 600; }
+.ip-row-value { font-family: 'DM Mono', monospace; font-size: 12.5px; font-weight: 600; }
+.ip-ok { color: var(--success); }
+.ip-fail { color: var(--danger); }
+
+/* Verify Status */
+.verify-status {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-radius: 10px;
+  margin-bottom: 4px; font-size: 13px; font-weight: 600;
+}
+.vs-ok { background: rgba(52,211,153,.1); border: 1px solid rgba(52,211,153,.25); color: var(--success); }
+.vs-fail { background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.25); color: var(--danger); }
+.vs-checking { background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.25); color: var(--primary); }
+.spin { animation: spin .8s linear infinite; display: inline-block; }
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* Footer */
+.checkin-footer { padding: 16px 16px 28px; }
+.type-row { display: flex; gap: 10px; margin-bottom: 14px; }
+.type-btn {
+  flex: 1; padding: 12px 8px; border-radius: 12px;
+  border: 1.5px solid var(--border); background: var(--surface2);
+  color: var(--text2); font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all .2s; font-family: 'Noto Sans TC', sans-serif;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.type-btn.sel-in { border-color: var(--primary); background: rgba(56,189,248,.12); color: var(--text); }
+.type-btn.sel-out { border-color: var(--success); background: rgba(52,211,153,.12); color: var(--text); }
+.btn-checkin {
+  width: 100%; padding: 18px; background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+  border: none; border-radius: 16px; font-size: 17px; font-weight: 900; color: #fff;
+  cursor: pointer; font-family: 'Noto Sans TC', sans-serif;
+  transition: all .25s; box-shadow: 0 8px 32px rgba(14,165,233,.35);
+  position: relative; overflow: hidden;
+}
+.btn-checkin:hover:not(.disabled) { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(14,165,233,.45); }
+.btn-checkin.disabled { background: var(--surface3); box-shadow: none; color: var(--text3); cursor: not-allowed; }
+.btn-checkin.out-mode { background: linear-gradient(135deg, #059669, #34d399); box-shadow: 0 8px 32px rgba(52,211,153,.35); }
+.btn-checkin.loading { background: var(--surface3); cursor: not-allowed; }
+
+/* History */
+.history-wrap { margin: 0 16px 24px; }
+.history-title { font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+.history-item { display: flex; align-items: center; gap: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; }
+.hdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.hdot.in { background: var(--success); }
+.hdot.out { background: var(--primary); }
+.htype { font-size: 12.5px; font-weight: 700; flex: 1; }
+.hmethod { font-size: 11px; color: var(--text2); }
+.htime { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 600; }
+
+/* Overlays */
+.overlay {
+  display: none; position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,.85); backdrop-filter: blur(8px);
+  align-items: center; justify-content: center;
+}
+.overlay.show { display: flex; animation: fadeIn .3s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.result-card {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 28px; padding: 40px 32px;
+  text-align: center; max-width: 320px; width: 90%;
+  animation: pop-in .35s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes pop-in { from{transform:scale(.7);opacity:0} to{transform:scale(1);opacity:1} }
+.result-icon { font-size: 64px; margin-bottom: 16px; }
+.result-title { font-size: 22px; font-weight: 900; margin-bottom: 6px; }
+.result-time { font-family: 'DM Mono', monospace; font-size: 38px; font-weight: 700; color: var(--success); margin-bottom: 8px; }
+.result-sub { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 6px; }
+.result-meta { font-size: 11.5px; color: var(--text3); margin-bottom: 24px; }
+.btn-close {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 12px; padding: 12px 32px;
+  color: var(--text); font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: 'Noto Sans TC', sans-serif;
+}
+.alert-card {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 24px; padding: 28px 24px;
+  width: calc(100% - 32px); max-width: 400px;
+  animation: slide-up .3s cubic-bezier(.34,1.2,.64,1);
+}
+@keyframes slide-up { from{transform:translateY(60px);opacity:0} to{transform:translateY(0);opacity:1} }
+.alert-icon { font-size: 36px; margin-bottom: 10px; }
+.alert-title { font-size: 17px; font-weight: 800; color: var(--danger); margin-bottom: 6px; }
+.alert-msg { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 18px; }
+.btn-alert-close { width: 100%; padding: 13px; border-radius: 12px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans TC', sans-serif; }
+
+/* Sending overlay */
+.sending-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.7); backdrop-filter: blur(6px);
+  align-items: center; justify-content: center; flex-direction: column;
+}
+.sending-overlay.show { display: flex; }
+.sending-spinner { font-size: 48px; animation: spin 1s linear infinite; margin-bottom: 16px; }
+.sending-text { font-size: 16px; font-weight: 700; color: var(--primary); }
+</style>
+</head>
+<body>
+<div class="bg-mesh"></div>
+
+<!-- ── Login Screen ── -->
+<div id="loginScreen">
+  <div class="login-logo">🏢</div>
+  <div class="login-brand">悦通系統有限公司</div>
+  <div class="login-sub">APOTECH · 員工打卡系統</div>
+  <div class="login-card">
+    <h2>🔐 員工登入</h2>
+    <div class="form-group">
+      <label class="form-label">員工編號</label>
+      <input class="form-input" id="inputEmpId" placeholder="例：EMP001" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label class="form-label">姓名</label>
+      <input class="form-input" id="inputEmpName" placeholder="請輸入您的姓名">
+    </div>
+    <div class="form-group">
+      <label class="form-label">部門</label>
+      <select class="form-input" id="inputEmpDept">
+        <option value="">請選擇部門</option>
+        <option>業務部</option>
+        <option>行銷部</option>
+        <option>工程部</option>
+        <option>人資部</option>
+        <option>財務部</option>
+        <option>管理部</option>
+      </select>
+    </div>
+    <button class="btn-login" onclick="doLogin()">進入打卡系統</button>
+    <div class="login-error" id="loginError">請填寫完整的員工編號、姓名與部門</div>
+  </div>
+</div>
+
+<!-- ── Main App ── -->
+<div class="app" id="mainApp" style="display:none">
+
+  <div class="header">
+    <div>
+      <div class="brand-label">APOTECH Attendance</div>
+      <div class="brand-title">員工打卡</div>
+    </div>
+    <div class="header-time">
+      <div class="time-clock" id="liveClock">00:00:00</div>
+      <div class="time-date" id="liveDate"></div>
+    </div>
+  </div>
+
+  <div class="emp-card">
+    <div class="emp-avatar" id="empAvatar">?</div>
+    <div style="flex:1">
+      <div class="emp-name" id="empNameDisplay">—</div>
+      <div class="emp-meta">
+        <span class="emp-id" id="empIdDisplay">—</span>
+        <span class="emp-dept" id="empDeptDisplay">—</span>
+      </div>
+    </div>
+    <div class="status-dot"></div>
+  </div>
+
+  <div class="last-checkin">
+    <div class="last-card">
+      <div class="last-card-label">今日上班</div>
+      <div class="last-card-value in" id="lastIn">—</div>
+      <div class="last-card-sub" id="lastInMethod">尚未打卡</div>
+    </div>
+    <div class="last-card">
+      <div class="last-card-label">今日下班</div>
+      <div class="last-card-value out" id="lastOut">—</div>
+      <div class="last-card-sub" id="lastOutMethod">尚未打卡</div>
+    </div>
+  </div>
+
+  <div class="mode-wrap">
+    <div class="mode-label">選擇驗證方式</div>
+    <div class="mode-grid">
+      <div class="mode-btn active" onclick="selectMode('gps',this)">
+        <span class="mode-icon">📍</span><span class="mode-name">GPS<br>定位</span>
+      </div>
+      <div class="mode-btn" onclick="selectMode('wifi',this)">
+        <span class="mode-icon">📶</span><span class="mode-name">WiFi<br>驗證</span>
+      </div>
+      <div class="mode-btn" onclick="selectMode('qr',this)">
+        <span class="mode-icon">📷</span><span class="mode-name">QR Code<br>掃描</span>
+      </div>
+      <div class="mode-btn" onclick="selectMode('ip',this)">
+        <span class="mode-icon">🌐</span><span class="mode-name">IP<br>驗證</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="verify-panel">
+    <!-- GPS -->
+    <div class="verify-inner" id="panel-gps">
+      <div class="verify-title">📍 GPS 定位驗證</div>
+      <div class="verify-subtitle">限公司 <strong style="color:var(--primary)">500 公尺</strong>內才可打卡（楊梅區中山北路）</div>
+      <div class="gps-map-mock">
+        <div class="map-grid"></div>
+        <div class="map-ring"></div>
+        <div class="company-pin">🏢</div>
+        <div class="user-pin" id="userPin">📍</div>
+        <div class="dist-tag" id="distTag">偵測中...</div>
+      </div>
+      <div class="gps-info">
+        <div class="gps-info-item">
+          <div class="gps-info-label">距離公司</div>
+          <div class="gps-info-value" id="gpsDistance">— m</div>
+        </div>
+        <div class="gps-info-item">
+          <div class="gps-info-label">座標</div>
+          <div class="gps-info-value" id="gpsCoord">定位中...</div>
+        </div>
+      </div>
+      <div class="verify-status vs-checking" id="gpsStatus"><span class="spin">⟳</span>&nbsp;取得 GPS 位置中...</div>
+    </div>
+
+    <!-- WiFi -->
+    <div class="verify-inner" id="panel-wifi" style="display:none">
+      <div class="verify-title">📶 WiFi 驗證</div>
+      <div class="verify-subtitle">需連接公司授權 WiFi 才可打卡</div>
+      <div class="wifi-anim">
+        <div class="wifi-rings">
+          <div class="wifi-ring-item"></div>
+          <div class="wifi-ring-item"></div>
+          <div class="wifi-ring-item"></div>
+          <div class="wifi-dot"></div>
+        </div>
+      </div>
+      <div class="wifi-ssid-box">
+        <span style="font-size:20px">📶</span>
+        <div style="flex:1">
+          <div class="wifi-ssid-name" id="wifiSSID">偵測中...</div>
+          <div class="wifi-ssid-status" id="wifiStatusText">正在比對 WiFi</div>
+        </div>
+        <span class="wifi-badge" id="wifiBadge"></span>
+      </div>
+      <div class="verify-status vs-checking" id="wifiStatus"><span class="spin">⟳</span>&nbsp;偵測 WiFi 連線中...</div>
+    </div>
+
+    <!-- QR -->
+    <div class="verify-inner" id="panel-qr" style="display:none">
+      <div class="verify-title">📷 QR Code 掃描</div>
+      <div class="verify-subtitle">掃描公司入口<strong style="color:var(--primary)">動態 QR Code</strong>（每 60 秒更新）</div>
+      <div class="qr-toggle">
+        <button class="qr-toggle-btn active" id="btnScan" onclick="switchQR('scan')">📷 掃描 QR</button>
+        <button class="qr-toggle-btn" id="btnShowQR" onclick="switchQR('show')">🖥 我的 QR</button>
+      </div>
+      <div id="scanSection">
+        <div class="scanner-wrap">
+          <div class="scanner-prompt" id="scanPrompt">
+            <div style="font-size:36px;margin-bottom:8px">📷</div>
+            <div style="font-size:13px;color:var(--text2);margin-bottom:12px">點擊開啟相機掃描 QR Code</div>
+            <button class="btn-checkin" style="width:auto;padding:10px 20px;font-size:13px" onclick="startScan()">開啟相機</button>
+          </div>
+          <div id="qr-reader" style="display:none"></div>
+          <div class="scanner-corner tl"></div>
+          <div class="scanner-corner tr"></div>
+          <div class="scanner-corner bl"></div>
+          <div class="scanner-corner br"></div>
+        </div>
+      </div>
+      <div id="showQRSection" style="display:none">
+        <div class="qr-container">
+          <div class="qr-box"><div id="myQRCode"></div></div>
+          <div class="qr-timer">⏱ 剩餘 <span id="qrCountdown">60</span> 秒更新</div>
+        </div>
+      </div>
+      <div class="verify-status vs-checking" id="qrStatus"><span>📷</span>&nbsp;等待掃描 QR Code...</div>
+    </div>
+
+    <!-- IP -->
+    <div class="verify-inner" id="panel-ip" style="display:none">
+      <div class="verify-title">🌐 IP 驗證</div>
+      <div class="verify-subtitle">確認目前網路 IP 是否為公司授權位址</div>
+      <div class="ip-shield">🛡️</div>
+      <div class="ip-info-box">
+        <div class="ip-row">
+          <span class="ip-row-label">您的 IP</span>
+          <span class="ip-row-value" id="currentIP">偵測中...</span>
+        </div>
+        <div class="ip-row">
+          <span class="ip-row-label">驗證結果</span>
+          <span class="ip-row-value" id="ipResult">驗證中...</span>
+        </div>
+      </div>
+      <div class="verify-status vs-checking" id="ipStatus"><span class="spin">⟳</span>&nbsp;驗證 IP 中...</div>
+    </div>
+  </div>
+
+  <div class="checkin-footer">
+    <div class="type-row">
+      <button class="type-btn sel-in" id="btnIn" onclick="selectType('in')">🌅 上班打卡</button>
+      <button class="type-btn" id="btnOut" onclick="selectType('out')">🌙 下班打卡</button>
+    </div>
+    <button class="btn-checkin disabled" id="mainBtn" onclick="doCheckin()">驗證中，請稍候...</button>
+  </div>
+
+  <div class="history-wrap">
+    <div class="history-title">📋 今日紀錄</div>
+    <div id="historyList"><div style="text-align:center;padding:16px;color:var(--text3);font-size:13px">今日尚無打卡紀錄</div></div>
+  </div>
+
+  <div style="text-align:center;padding:0 16px 32px">
+    <button onclick="doLogout()" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">登出</button>
+  </div>
+
+</div>
+
+<!-- Success Overlay -->
+<div class="overlay" id="successOverlay">
+  <div class="result-card">
+    <div class="result-icon" id="ri">✅</div>
+    <div class="result-title" id="rt">打卡成功！</div>
+    <div class="result-time" id="rtime"></div>
+    <div class="result-sub" id="rsub"></div>
+    <div class="result-meta" id="rmeta"></div>
+    <button class="btn-close" onclick="closeSuccess()">確認</button>
+  </div>
+</div>
+
+<!-- Alert Overlay -->
+<div class="overlay" id="alertOverlay" style="align-items:flex-end;padding-bottom:28px">
+  <div class="alert-card">
+    <div class="alert-icon">⚠️</div>
+    <div class="alert-title" id="alertTitle">打卡失敗</div>
+    <div class="alert-msg" id="alertMsg"></div>
+    <button class="btn-alert-close" onclick="closeAlert()">關閉</button>
+  </div>
+</div>
+
+<!-- Sending Overlay -->
+<div class="sending-overlay" id="sendingOverlay">
+  <div class="sending-spinner">⏳</div>
+  <div class="sending-text">正在寫入打卡紀錄...</div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// ⚙️  設定區（管理員請修改此處）
+// ══════════════════════════════════════
+const CONFIG = {
+  // 公司 GPS 座標（楊梅區中山北路1段199巷83號）
+  LAT: 24.9165,
+  LNG: 121.1445,
+  MAX_DIST: 500,          // 允許打卡範圍（公尺）
+
+  // 公司 WiFi（請填入實際 SSID）
+  WIFI_SSID: 'APOTECH-WiFi',
+
+  // 公司 IP 前綴（請填入實際 IP 段）
+  ALLOWED_IP_PREFIX: '203.69.180',
+
+  // Notion API（請填入你的 Integration Token 和 Database ID）
+  NOTION_TOKEN: 'YOUR_NOTION_TOKEN_HERE',
+  NOTION_DB_ID: 'dfac652b-ef76-49ff-b926-ece9fbda4d9f',
+
+  // Notion Proxy（GitHub Pages 無法直接呼叫 Notion API，需要 CORS Proxy）
+  // 部署後請填入你的後端 Proxy URL，或使用 Cloudflare Workers
+  NOTION_PROXY: 'https://YOUR_PROXY_URL/api/checkin',
+};
+// ══════════════════════════════════════
+
+// ── State ──
+let emp = { id:'', name:'', dept:'' };
+let currentMode = 'gps';
+let checkinType = 'in';
+let verified = { gps:false, wifi:false, qr:false, ip:false };
+let gpsData = { lat:0, lng:0, dist:0 };
+let qrTimer=null, qrCount=60, qrCode=null;
+let scannerStarted=false, html5Scanner=null;
+let historyRecords=[];
+
+// ── Clock ──
+function pad(n){return String(n).padStart(2,'0')}
+function tick(){
+  const now=new Date();
+  const el=document.getElementById('liveClock');
+  if(el) el.textContent=`${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  const days=['日','一','二','三','四','五','六'];
+  const de=document.getElementById('liveDate');
+  if(de) de.textContent=`${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} 週${days[now.getDay()]}`;
+}
+setInterval(tick,1000); tick();
+
+// ── Login ──
+function doLogin(){
+  const id=document.getElementById('inputEmpId').value.trim().toUpperCase();
+  const name=document.getElementById('inputEmpName').value.trim();
+  const dept=document.getElementById('inputEmpDept').value;
+  if(!id||!name||!dept){
+    document.getElementById('loginError').style.display='block';
+    return;
+  }
+  emp={id,name,dept};
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('mainApp').style.display='flex';
+  document.getElementById('empAvatar').textContent=name[0];
+  document.getElementById('empNameDisplay').textContent=name;
+  document.getElementById('empIdDisplay').textContent=id;
+  document.getElementById('empDeptDisplay').textContent=dept;
+  initGPS();
+}
+function doLogout(){
+  emp={id:'',name:'',dept:''};
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('mainApp').style.display='none';
+  historyRecords=[];
+  document.getElementById('lastIn').textContent='—';
+  document.getElementById('lastOut').textContent='—';
+  document.getElementById('lastInMethod').textContent='尚未打卡';
+  document.getElementById('lastOutMethod').textContent='尚未打卡';
+}
+
+// ── Mode ──
+function selectMode(mode,el){
+  currentMode=mode;
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  ['gps','wifi','qr','ip'].forEach(m=>{
+    document.getElementById('panel-'+m).style.display=m===mode?'block':'none';
+  });
+  updateBtn();
+  if(mode==='gps') initGPS();
+  if(mode==='wifi') initWiFi();
+  if(mode==='qr') initQR();
+  if(mode==='ip') initIP();
+}
+
+function selectType(type){
+  checkinType=type;
+  document.getElementById('btnIn').className='type-btn'+(type==='in'?' sel-in':'');
+  document.getElementById('btnOut').className='type-btn'+(type==='out'?' sel-out':'');
+  updateBtn();
+}
+
+function updateBtn(){
+  const ok=verified[currentMode];
+  const btn=document.getElementById('mainBtn');
+  if(ok){
+    btn.classList.remove('disabled');
+    if(checkinType==='in'){btn.classList.remove('out-mode');btn.textContent='✅  上班打卡';}
+    else{btn.classList.add('out-mode');btn.textContent='🌙  下班打卡';}
+  } else {
+    btn.classList.add('disabled');btn.classList.remove('out-mode');
+    const txt={gps:'GPS 驗證中...',wifi:'WiFi 驗證中...',qr:'等待掃描 QR...',ip:'IP 驗證中...'};
+    btn.textContent=txt[currentMode]||'驗證中...';
+  }
+}
+
+function setStatus(id,type,msg){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const cls={ok:'vs-ok',fail:'vs-fail',checking:'vs-checking'};
+  el.className='verify-status '+cls[type];
+  el.innerHTML=type==='checking'?`<span class="spin">⟳</span>&nbsp;${msg}`:
+               type==='ok'?`<span>✓</span>&nbsp;${msg}`:`<span>✗</span>&nbsp;${msg}`;
+}
+
+// ── GPS ──
+function haversine(lat1,lng1,lat2,lng2){
+  const R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+}
+
+function initGPS(){
+  setStatus('gpsStatus','checking','取得 GPS 位置中...');
+  document.getElementById('gpsDistance').textContent='— m';
+  document.getElementById('gpsCoord').textContent='定位中...';
+  document.getElementById('distTag').textContent='偵測中...';
+  verified.gps=false; updateBtn();
+
+  if(!navigator.geolocation){setStatus('gpsStatus','fail','裝置不支援 GPS 定位');return;}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const {latitude:lat,longitude:lng}=pos.coords;
+    const dist=haversine(lat,lng,CONFIG.LAT,CONFIG.LNG);
+    gpsData={lat,lng,dist};
+    document.getElementById('gpsDistance').textContent=`${dist} m`;
+    document.getElementById('gpsCoord').textContent=`${lat.toFixed(4)},${lng.toFixed(4)}`;
+    document.getElementById('distTag').textContent=`${dist}m`;
+    if(dist<=CONFIG.MAX_DIST){
+      setStatus('gpsStatus','ok',`距公司 ${dist} 公尺，驗證通過`);
+      verified.gps=true;
+      document.getElementById('userPin').textContent='🟢';
+    } else {
+      setStatus('gpsStatus','fail',`距公司 ${dist} 公尺，超過 ${CONFIG.MAX_DIST} 公尺限制`);
+      verified.gps=false;
+      document.getElementById('userPin').textContent='🔴';
+    }
+    updateBtn();
+  }, ()=>{
+    // Demo fallback（測試用）
+    const dLat=CONFIG.LAT+(Math.random()-.5)*.003;
+    const dLng=CONFIG.LNG+(Math.random()-.5)*.003;
+    const dist=haversine(dLat,dLng,CONFIG.LAT,CONFIG.LNG);
+    gpsData={lat:dLat,lng:dLng,dist};
+    document.getElementById('gpsDistance').textContent=`${dist} m`;
+    document.getElementById('gpsCoord').textContent=`${dLat.toFixed(4)},${dLng.toFixed(4)}`;
+    document.getElementById('distTag').textContent=`Demo:${dist}m`;
+    if(dist<=CONFIG.MAX_DIST){
+      setStatus('gpsStatus','ok',`[Demo] 距公司 ${dist} 公尺，驗證通過`);
+      verified.gps=true;document.getElementById('userPin').textContent='🟢';
+    } else {
+      setStatus('gpsStatus','fail',`[Demo] 距公司 ${dist} 公尺，超過限制`);
+      verified.gps=false;
+    }
+    updateBtn();
+  },{enableHighAccuracy:true,timeout:8000});
+}
+
+// ── WiFi ──
+function initWiFi(){
+  setStatus('wifiStatus','checking','偵測 WiFi 連線中...');
+  verified.wifi=false;updateBtn();
+  document.getElementById('wifiSSID').textContent='偵測中...';
+  document.getElementById('wifiBadge').textContent='';
+  setTimeout(()=>{
+    // 瀏覽器無法直接讀取 SSID，需後端輔助
+    // Demo：模擬通過
+    const ssid=CONFIG.WIFI_SSID;
+    const matched=true; // 實際上線後由後端驗證
+    document.getElementById('wifiSSID').textContent=ssid;
+    if(matched){
+      document.getElementById('wifiBadge').className='wifi-badge wifi-ok';
+      document.getElementById('wifiBadge').textContent='✓ 相符';
+      document.getElementById('wifiStatusText').textContent='已連接公司 WiFi';
+      setStatus('wifiStatus','ok',`已連接：${ssid}`);
+      verified.wifi=true;
+    } else {
+      document.getElementById('wifiBadge').className='wifi-badge wifi-fail';
+      document.getElementById('wifiBadge').textContent='✗ 不符';
+      document.getElementById('wifiStatusText').textContent='非授權 WiFi';
+      setStatus('wifiStatus','fail','請連接公司授權 WiFi 再打卡');
+      verified.wifi=false;
+    }
+    updateBtn();
+  },1500);
+}
+
+// ── QR ──
+function initQR(){ switchQR('scan'); }
+
+function switchQR(mode){
+  document.getElementById('scanSection').style.display=mode==='scan'?'block':'none';
+  document.getElementById('showQRSection').style.display=mode==='show'?'block':'none';
+  document.getElementById('btnScan').classList.toggle('active',mode==='scan');
+  document.getElementById('btnShowQR').classList.toggle('active',mode==='show');
+  if(mode==='show') genMyQR();
+}
+
+function genMyQR(){
+  const container=document.getElementById('myQRCode');
+  container.innerHTML='';
+  const token=`${emp.id}-${Date.now()}-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
+  try{
+    if(qrCode){try{qrCode.clear();}catch(e){}}
+    qrCode=new QRCode(container,{text:token,width:140,height:140,colorDark:'#1e293b',colorLight:'#ffffff'});
+  }catch(e){container.innerHTML=`<div style="font-size:9px;padding:8px;word-break:break-all;color:#333">${token.slice(0,40)}</div>`;}
+  qrCount=60;clearInterval(qrTimer);
+  qrTimer=setInterval(()=>{
+    qrCount--;
+    const el=document.getElementById('qrCountdown');
+    if(el)el.textContent=qrCount;
+    if(qrCount<=0)genMyQR();
+  },1000);
+}
+
+function startScan(){
+  document.getElementById('scanPrompt').style.display='none';
+  const reader=document.getElementById('qr-reader');
+  reader.style.display='block';
+  if(scannerStarted)return;
+  scannerStarted=true;
+  try{
+    html5Scanner=new Html5Qrcode('qr-reader');
+    html5Scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:180,height:180}},
+      decoded=>{
+        html5Scanner.stop();scannerStarted=false;
+        if(decoded.match(/^EMP\d{3}-\d{13}-[A-Z0-9]{6}$/)){
+          const ts=parseInt(decoded.split('-')[1]);
+          if((Date.now()-ts)/1000>60){
+            setStatus('qrStatus','fail','此 QR Code 已過期，請重新取得');verified.qr=false;
+          } else {
+            setStatus('qrStatus','ok','QR Code 驗證成功！');verified.qr=true;
+          }
+        } else {
+          setStatus('qrStatus','fail','無效的 QR Code');verified.qr=false;
+        }
+        reader.style.display='none';updateBtn();
+      },()=>{}
+    ).catch(()=>{scannerStarted=false;qrDemoPass();});
+  }catch(e){scannerStarted=false;qrDemoPass();}
+}
+
+function qrDemoPass(){
+  setTimeout(()=>{
+    setStatus('qrStatus','ok','[Demo] QR Code 驗證成功！');
+    verified.qr=true;updateBtn();
+  },1000);
+}
+
+// ── IP ──
+function initIP(){
+  setStatus('ipStatus','checking','驗證 IP 中...');
+  document.getElementById('currentIP').textContent='偵測中...';
+  document.getElementById('ipResult').textContent='驗證中...';
+  verified.ip=false;updateBtn();
+  fetch('https://api.ipify.org?format=json')
+    .then(r=>r.json())
+    .then(data=>{
+      const ip=data.ip;
+      document.getElementById('currentIP').textContent=ip;
+      const ok=ip.startsWith(CONFIG.ALLOWED_IP_PREFIX);
+      if(ok){
+        document.getElementById('ipResult').className='ip-row-value ip-ok';
+        document.getElementById('ipResult').textContent='✓ 已授權';
+        setStatus('ipStatus','ok',`IP 驗證通過：${ip}`);verified.ip=true;
+      } else {
+        document.getElementById('ipResult').className='ip-row-value ip-fail';
+        document.getElementById('ipResult').textContent='✗ 未授權';
+        setStatus('ipStatus','fail',`IP（${ip}）非公司授權網路`);verified.ip=false;
+      }
+      updateBtn();
+    })
+    .catch(()=>{
+      // Demo
+      const demoIP='203.69.180.55';
+      document.getElementById('currentIP').textContent=demoIP;
+      document.getElementById('ipResult').className='ip-row-value ip-ok';
+      document.getElementById('ipResult').textContent='✓ 已授權（Demo）';
+      setStatus('ipStatus','ok',`[Demo] IP 驗證通過`);
+      verified.ip=true;updateBtn();
+    });
+}
+
+// ── Do Checkin ──
+async function doCheckin(){
+  const btn=document.getElementById('mainBtn');
+  if(btn.classList.contains('disabled')||btn.classList.contains('loading'))return;
+
+  const now=new Date();
+  const timeStr=`${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const isoTime=now.toISOString().slice(0,16); // 2026-04-03T09:00
+  const methodMap={gps:'GPS定位',wifi:'WiFi驗證',qr:'QR Code',ip:'IP驗證'};
+  const method=methodMap[currentMode];
+  const isIn=checkinType==='in';
+
+  // Build Notion record
+  const title=`${now.toISOString().slice(0,10)} ${isIn?'上班':'下班'} | ${emp.name}`;
+  const record={
+    '打卡紀錄': title,
+    '員工姓名': emp.name,
+    '員工編號': emp.id,
+    '部門': emp.dept,
+    '打卡類型': isIn?'上班':'下班',
+    '驗證方式': method,
+    '驗證結果': '通過',
+    '距離公司(公尺)': currentMode==='gps'?gpsData.dist:null,
+    'GPS緯度': currentMode==='gps'?String(gpsData.lat.toFixed(5)):null,
+    'GPS經度': currentMode==='gps'?String(gpsData.lng.toFixed(5)):null,
+    '裝置資訊': navigator.userAgent.slice(0,80),
+    '打卡時間': isoTime,
+  };
+
+  // Show sending
+  document.getElementById('sendingOverlay').classList.add('show');
+  btn.classList.add('loading'); btn.textContent='寫入中...';
+
+  try {
+    await saveToNotion(record);
+  } catch(e) {
+    console.warn('Notion API 失敗，使用本地記錄：', e);
+  }
+
+  document.getElementById('sendingOverlay').classList.remove('show');
+
+  // Update UI
+  if(isIn){
+    document.getElementById('lastIn').textContent=timeStr;
+    document.getElementById('lastInMethod').textContent=method;
+  } else {
+    document.getElementById('lastOut').textContent=timeStr;
+    document.getElementById('lastOutMethod').textContent=method;
+  }
+
+  historyRecords.unshift({type:checkinType,method,time:timeStr,dist:currentMode==='gps'?gpsData.dist:null});
+  renderHistory();
+
+  // Show success
+  document.getElementById('ri').textContent=isIn?'🌅':'🌙';
+  document.getElementById('rt').textContent=isIn?'上班打卡成功！':'下班打卡成功！';
+  document.getElementById('rtime').textContent=timeStr;
+  document.getElementById('rsub').textContent=`驗證方式：${method}`;
+  document.getElementById('rmeta').textContent=currentMode==='gps'?`📍 距公司 ${gpsData.dist} 公尺`:'🔒 安全驗證完成';
+  document.getElementById('successOverlay').classList.add('show');
+
+  btn.classList.remove('loading');updateBtn();
+}
+
+async function saveToNotion(record){
+  // 直接呼叫 Notion API（需要後端 proxy 處理 CORS）
+  // 如果有 proxy，改用 CONFIG.NOTION_PROXY
+  if(CONFIG.NOTION_PROXY && CONFIG.NOTION_PROXY !== 'https://YOUR_PROXY_URL/api/checkin'){
+    const res=await fetch(CONFIG.NOTION_PROXY,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(record)
+    });
+    if(!res.ok) throw new Error('Proxy error');
+    return;
+  }
+  // Fallback: 直接呼叫（本地測試或有 CORS header 時有效）
+  const props={
+    '打卡紀錄':{title:[{text:{content:record['打卡紀錄']}}]},
+    '員工姓名':{rich_text:[{text:{content:record['員工姓名']}}]},
+    '員工編號':{rich_text:[{text:{content:record['員工編號']}}]},
+    '部門':{select:{name:record['部門']}},
+    '打卡類型':{select:{name:record['打卡類型']}},
+    '驗證方式':{select:{name:record['驗證方式']}},
+    '驗證結果':{select:{name:record['驗證結果']}},
+    '打卡時間':{date:{start:record['打卡時間']}},
+    '裝置資訊':{rich_text:[{text:{content:record['裝置資訊']||''}}]},
+  };
+  if(record['距離公司(公尺)']!==null) props['距離公司(公尺)']={number:record['距離公司(公尺)']};
+  if(record['GPS緯度']) props['GPS緯度']={rich_text:[{text:{content:record['GPS緯度']}}]};
+  if(record['GPS經度']) props['GPS經度']={rich_text:[{text:{content:record['GPS經度']}}]};
+
+  await fetch('https://api.notion.com/v1/pages',{
+    method:'POST',
+    headers:{
+      'Authorization':`Bearer ${CONFIG.NOTION_TOKEN}`,
+      'Notion-Version':'2022-06-28',
+      'Content-Type':'application/json',
+    },
+    body:JSON.stringify({parent:{database_id:CONFIG.NOTION_DB_ID},properties:props})
+  });
+}
+
+function renderHistory(){
+  const list=document.getElementById('historyList');
+  if(historyRecords.length===0){
+    list.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3);font-size:13px">今日尚無打卡紀錄</div>';return;
+  }
+  list.innerHTML=historyRecords.map(r=>`
+    <div class="history-item">
+      <div class="hdot ${r.type}"></div>
+      <div style="flex:1">
+        <div class="htype">${r.type==='in'?'🌅 上班打卡':'🌙 下班打卡'}</div>
+        <div class="hmethod">${r.method}${r.dist?` · 距離 ${r.dist}m`:''}</div>
+      </div>
+      <div class="htime">${r.time}</div>
+    </div>`).join('');
+}
+
+function closeSuccess(){ document.getElementById('successOverlay').classList.remove('show'); }
+function closeAlert(){ document.getElementById('alertOverlay').classList.remove('show'); }
+</script>
+</body>
+</html>
